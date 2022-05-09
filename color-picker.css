@@ -5,10 +5,9 @@
     
     /* place relative to previous block*/
     position: absolute;
-    --middle-v: calc((100vh - 100px)/2);
-    --middle-h: calc((100vw - var(--HSV-width))/2);
-    top: calc(var(--middle-v) - 155px);
-    left: calc(var(--middle-h) + 70px);
+    --h-mid: calc((100vw - var(--HSV-width))/2);
+    top: 60px;
+    left: calc(var(--h-mid) + 70px);
     display: grid;
     grid-template-columns: 200px 20px;
     width: var(--HSV-width);
