@@ -1,2 +1,3 @@
-# pixel-editor
-JS Pixel Editor
+# pix
+
+Web-based pixel art editor.
