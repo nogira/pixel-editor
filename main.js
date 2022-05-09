@@ -11,7 +11,38 @@ const ctx = canvas.getContext("2d");
 let currentColor = "gray";
 let currentTool = 'Pencil'
 
-// init image
+
+
+
+
+
+
+/* 🚨 🚨 🚨
+
+to pick right a left mouse tools, left click on tool selects it for left click, 
+right click on tool selects it for right click
+
+to indicate which tool is selected, for left click have top left triange of tool
+colored some dark color, and for right click have bottom right trangle in a 
+lighter version of the same color (bc left click is more important so having a 
+darker color that stands out more helps with visual understanding)
+
+🚨 🚨 🚨 */
+
+
+
+
+
+
+
+// --init image--
+// example of 4px by 4px image
+// [
+//     ['white', 'white', 'white', 'white'],
+//     ['white', 'white', 'white', 'white'],
+//     ['white', 'white', 'white', 'white'],
+//     ['white', 'white', 'white', 'white']
+// ]
 const img = [];
 for (let i = 0; i < imgHeight; i++) {
     img.push([]);
@@ -46,45 +77,56 @@ for (let i = 0; i < imgHeight; i++) {
 //         ctx.fillRect(x0, y0, width, height);
 //     }
 // }
-function updatePixelOfRender(x, y) {
-    const x0 = x * px;
-    const y0 = y * px;
-    const [width, height] = [px, px];
-    ctx.fillStyle = img[y][x];
-    ctx.fillRect(x0, y0, width, height);
+function drawPixelOnCanvas(x, y) {
+    // set the color of the pixel about to be drawn
+    ctx.fillStyle = currentColor;
+    //           x0,     y0,  width, height
+    ctx.fillRect(x * px, y * px, px, px);
 }
 
 
-//             MOUSE POSITON AND CLICK
+// ------MOUSE POSITON AND CLICK------
 
-const mousePixel = {x: 0, y: 0};
+
 let prevChangedPixel = null;
 
-function updatePositionOfMouseOnCanvas(event) {
-    const rect = canvas.getBoundingClientRect();
-    // minus 1 bc border
-    const mousePosX = event.clientX - rect.left - 1;
-    const mousePosY = event.clientY - rect.top - 1;
-    
-    function posToPixel(pos) {
-        return Math.floor(pos / px);
-    }
-    mousePixel.x = posToPixel(mousePosX);
-    mousePixel.y = posToPixel(mousePosY);
-
-    // console.log('Mouse position: ' + mousePosX + ',' + mousePosY);
-    // console.log('Pixel: ' + mousePixel.x + ',' + mousePixel.y);
-}
-function pencilFillMiddlePixels() {
+function pencilFillMiddlePixels(mousePixel) {
     const {x: x1, y: y1} = prevChangedPixel;
     const {x: x2, y: y2} = mousePixel;
 
+    // calculate the x and y difference between the two pixels
     const [xDiff, yDiff] = [Math.abs(x1 - x2), Math.abs(y1 - y2)]
+    // if  both x and y difference are 0, then the user clicked on the same 
+    // pixel so no need to fill in middle pixels
     if (xDiff > 1 || yDiff > 1) {
         const xMin = Math.min(x1, x2)
         const yMin = Math.min(y1, y2)
 
-        
+        /*
+        to make adding pixels simpler, we add along the longest axis.
+        e.g. in this example between points a & b, the middle is 4 wide and 2 tall:
+          a
+           ▉▉
+             ▉▉
+               b
+
+        if we add pixels along the x-axis, we just need to fill in the numbers 
+        between a_x and b_x with a simple for loop (i.e. get the uniwue integers
+        between a_x and b_x). then from those x values we can calculate the 
+        y-values for each x-value with the equation of a line, y = mx + c
+
+        if we add pixels along the y-axis, you need the y-values between the 2 
+        y-values of a and b (very simple), and then also you need to calculate 
+        how many pixels you need per y-value (could get quite complicated), and 
+        then you need to calculate the x-value per y value for each y-value, 
+        again using y = mx + c (rearranged to x = (y - c) / m)
+
+        as you can see, if you calculate along the longest axis, there are 2 
+        calculation steps, while if you go along the shortest axis there are 3 
+        steps. thus we calculate along the longest axis
+        */
+
+        // if x-axis is the longest axis
         if (xDiff > yDiff) {
             const calcYFromLine = (x) => {
                 // y = mx + c
@@ -104,16 +146,17 @@ function pencilFillMiddlePixels() {
             }
             for (let xVal of xArr) {
                 const yVal = calcYFromLine(xVal)
-                if (yVal%1 === 0.5) {
-                    updatePixelOfArrayAndRender(xVal, yVal+0.5)
-                    updatePixelOfArrayAndRender(xVal, yVal-0.5)
-                    // console.log(xVal, yVal+0.5)
-                    // console.log(xVal, yVal-0.5)
+                // if decimal part of yVal is 0.5, coordinate is  on edge of 2 
+                // pixels, so fill in both pixels
+                if (yVal % 1 === 0.5) {
+                    updatePixelArrayAndCanvas(xVal, yVal+0.5)
+                    updatePixelArrayAndCanvas(xVal, yVal-0.5)
                 } else {
-                    updatePixelOfArrayAndRender(xVal, Math.round(yVal))
+                    updatePixelArrayAndCanvas(xVal, Math.round(yVal)) // rounding bc sometimes calulating integers can cause the number to be off by like 0.00000000000000001
                 }
 
             }
+        // if y-axis is the longest axis
         } else {
             const calcXFromLine = (y) => {
                 // y = mx + c
@@ -135,39 +178,45 @@ function pencilFillMiddlePixels() {
             for (let i=yMin+1; i < yMin+yDiff; i++) {
                 yArr.push(i)
             }
-            // console.log(yArr)
             for (const yVal of yArr) {
-                const xVal = calcXFromLine(yVal)
-                // console.log(xVal, yVal);
-                if (xVal%1 === 0.5) {
-                    updatePixelOfArrayAndRender(xVal+0.5, yVal)
-                    updatePixelOfArrayAndRender(xVal-0.5, yVal)
-                    // console.log(yVal, yVal+0.5)
-                    // console.log(yVal, yVal-0.5)
+                const xVal = calcXFromLine(yVal);
+                // if decimal part of xVal is 0.5, coordinate is  on edge of 2 
+                // pixels, so fill in both pixels
+                if (xVal % 1 === 0.5) {
+                    updatePixelArrayAndCanvas(xVal+0.5, yVal)
+                    updatePixelArrayAndCanvas(xVal-0.5, yVal)
                 } else {
-                    updatePixelOfArrayAndRender(Math.round(xVal), yVal)
+                    updatePixelArrayAndCanvas(Math.round(xVal), yVal) // rounding bc sometimes calulating integers can cause the number to be off by like 0.00000000000000001
                 }
 
             }
         }
     }
 }
-function updatePixelOfArrayAndRender(pixelX, pixelY) {
+function updatePixelArrayAndCanvas(pixelX, pixelY) {
     img[pixelY][pixelX] = currentColor;
-    updatePixelOfRender(pixelX, pixelY);
+    drawPixelOnCanvas(pixelX, pixelY);
 }
-function pencilDraw(event) {
-    updatePositionOfMouseOnCanvas(event);
-    
-    updatePixelOfArrayAndRender(mousePixel.x, mousePixel.y);
-
-    // console.log('prev', prevChangedPixel, 'now', mousePixel)
-    // console.log(prevChangedPixel)
-    if (prevChangedPixel !== null) {
-        
-        pencilFillMiddlePixels();
+function handlePencilDrawing(event) {
+    const mousePixel = {};
+    // --update position of mouse on canvas--
+    {
+        const rect = canvas.getBoundingClientRect();
+       // minus 1 bc border
+        const mousePosX = event.clientX - rect.left - 1;
+        const mousePosY = event.clientY - rect.top - 1;
+        const posToPixel = (pos) => Math.floor(pos / px);
+        mousePixel.x = posToPixel(mousePosX);
+        mousePixel.y = posToPixel(mousePosY);
     }
-    // console.log("assign mousePixel to prevChangedPixel")
+    updatePixelArrayAndCanvas(mousePixel.x, mousePixel.y);
+
+    // if input is continuous, fill in middle pixels
+    if (prevChangedPixel !== null) {
+        pencilFillMiddlePixels(mousePixel);
+    }
+    // track pixel that was just changed to allow for next user input update to 
+    // fill in middle pixels if input is continuous
     prevChangedPixel = {...mousePixel};
 }
 
@@ -175,17 +224,17 @@ function pencilDraw(event) {
 $(canvas).on({
     mousedown(event) {
         // if statement is to make sure its left-click, not right-click
-        if (event.buttons === 1) { pencilDraw(event); }
+        if (event.buttons === 1) { handlePencilDrawing(event); }
     },
     mousemove(event) {
-        if (event.buttons === 1) { pencilDraw(event); }
+        if (event.buttons === 1) { handlePencilDrawing(event); }
     }
 });
 $(document).mouseup(() => {
     prevChangedPixel = null;
 });
 
-
+// prevent right click menu on canvas so can use for secondary tools (e.g. pencil on left click, eraser on right click)
 $(canvas).on('contextmenu', e => e.preventDefault());
 
 
@@ -228,7 +277,7 @@ $('#open-img').click(() => {
 
 $('#upload-img').on("input", function(e) {
     const img = new Image();
-    img.onload = function pencilDraw() {
+    img.onload = function draw() {
         // canvas.width = this.width;
         // canvas.height = this.height;
         ctx.drawImage(this, 0,0);
@@ -239,9 +288,9 @@ $('#upload-img').on("input", function(e) {
     img.src = URL.createObjectURL(this.files[0]);
 });
 
+let palleteHidden = true;
 $('#btn-pallete').click(() => {
-    $("#pick-color").prop("hidden", false);
-});
-$("#close-pick-color").click(() => {
-    $("#pick-color").prop("hidden", true);
+    palleteHidden = !palleteHidden;
+    $("#pick-color").prop("hidden", palleteHidden);
+
 });

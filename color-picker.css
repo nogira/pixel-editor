@@ -1,0 +1,26 @@
+#pick-color {
+    --satVal-width: 200px;
+    --hue-width: 20px;
+    --HSV-width: calc(var(--satVal-width) + var(--hue-width) + 20px);
+    
+    /* place relative to previous block*/
+    position: absolute;
+    --middle-v: calc((100vh - 100px)/2);
+    --middle-h: calc((100vw - var(--HSV-width))/2);
+    top: calc(var(--middle-v) - 155px);
+    left: calc(var(--middle-h) + 70px);
+    display: grid;
+    grid-template-columns: 200px 20px;
+    width: var(--HSV-width);
+    height: 150px;
+
+    background-color: white;
+    padding: 5px;
+    border-radius: 5px;
+}
+#SV {
+    background: linear-gradient(hsl(150, 100%, 100%), hsl(300, 100%, 0%));
+}
+#Hue {
+    background: linear-gradient(rgb(255,0,0), rgb(0,0,255), rgb(0,255,0), rgb(255,0,0));
+}

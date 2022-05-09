@@ -1,0 +1,13 @@
+:root {
+    image-rendering: pixelated;   /* stops blurring the image */
+}
+canvas {
+    border: 1px solid black;
+    cursor: crosshair;
+}
+h1 {
+    display: inline;
+}
+i {
+    align-self: right;
+}
