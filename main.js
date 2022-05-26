@@ -1,5 +1,3 @@
-// import { newPixArr } from "./newPixArr";
-
 const px = 20;   // size of each pixel on the canvas
 
 let imgWidth = 16;   // in pixels
@@ -58,7 +56,7 @@ function setSVBoxColor(hue) {
 }
 setSVBoxColor(HSV.H);
 
-// 200 x 140
+// 200 x 150
 function handleSVChange(event) {
     if (event.buttons === 1) {
         const saturation = event.offsetX / 200;
@@ -77,7 +75,7 @@ $("#SV").on({
         handleSVChange(event);
     }
 });
-// 20 x 140
+// 20 x 150
 function handleHueChange(event) {
     if (event.buttons === 1) {
         //          invert
@@ -121,20 +119,6 @@ function newPixArr() {
     }
     return pixelArr
 }
-
-
-/* 🚨 🚨 🚨
-
-TODO:
-to pick right a left mouse tools, left click on tool selects it for left click, 
-right click on tool selects it for right click
-
-to indicate which tool is selected, for left click have top left triange of tool
-colored some dark color, and for right click have bottom right trangle in a 
-lighter version of the same color (bc left click is more important so having a 
-darker color that stands out more helps with visual understanding)
-
-🚨 🚨 🚨 */
 
 
 //             THIS CODE IS KINDA USELESS FOR NOW
@@ -312,6 +296,22 @@ function handlePencilDrawing(event, color) {
 }
 
 
+function handleDropper(event) {
+    // --GET POSITION OF MOUSE ON CANVAS--
+    const mousePixel = {};
+    // get the position of the canvas
+    const rect = canvas.getBoundingClientRect();
+    // minus 1 bc border
+    const mousePosX = event.clientX - rect.left - 1;
+    const mousePosY = event.clientY - rect.top - 1;
+    const posToPixel = (pos) => Math.floor(pos / px);
+    mousePixel.x = posToPixel(mousePosX);
+    mousePixel.y = posToPixel(mousePosY);
+
+    // set current color to the color of the pixel the mouse is on
+    currentColor = pixelArr[mousePixel.y][mousePixel.x];
+}
+
 function handleMouseDown(event) {
     switch (event.buttons) {
         // left click
@@ -322,6 +322,10 @@ function handleMouseDown(event) {
                     break;
                 case 'eraser':
                     handlePencilDrawing(event, eraserColor);
+                    break;
+                case 'dropper':
+                    handleDropper(event);
+                    break;
             }
             break;
 
@@ -333,6 +337,10 @@ function handleMouseDown(event) {
                     break;
                 case 'eraser':
                     handlePencilDrawing(event, eraserColor);
+                    break;
+                case 'dropper':
+                    handleDropper(event);
+                    break;
             }
             break;
     }
