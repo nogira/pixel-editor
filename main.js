@@ -424,7 +424,7 @@ $('#upload-img').on("input", function(e) {
     img.onload = function draw() {
         // canvas.width = this.width;
         // canvas.height = this.height;
-        ctx.drawImage(this, 0,0);
+        ctx.drawImage(this, 0, 0/*, imgWidth * px, imgHeight * px*/); // FIXME: image not resizing
     };
     img.onerror = function failed() {
         console.error("The provided file couldn't be loaded as an Image media");
