@@ -1,4 +1,4 @@
-# pix
+# pixel-editor
 
 Web-based pixel art editor in relatively vanilla javascript.
 
