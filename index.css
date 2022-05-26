@@ -2,7 +2,7 @@
   image-rendering: pixelated;   /* stops blurring the image */
 }
 canvas#displayCanvas {
-  border: 1px solid black;
+  border: 1px solid rgb(232, 232, 232);
   cursor: crosshair;
 }
 h1 {
