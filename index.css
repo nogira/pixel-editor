@@ -1,13 +1,45 @@
 :root {
-    image-rendering: pixelated;   /* stops blurring the image */
+  image-rendering: pixelated;   /* stops blurring the image */
 }
-canvas {
-    border: 1px solid black;
-    cursor: crosshair;
+canvas#displayCanvas {
+  border: 1px solid black;
+  cursor: crosshair;
 }
 h1 {
-    display: inline;
+  display: inline;
 }
 i {
-    align-self: right;
+  align-self: right;
+}
+
+.left-btn.tool::before {
+  content: "";
+  display: block;
+  position: relative;
+  background: #306CF4;
+  width:5px;
+  height: 5px;
+  border-radius: 5px;
+
+  /* this prevents this container from interfering with normal page flow */
+  margin-bottom: -5px;
+
+  top: 10px;
+  left: 10px;
+}
+
+.right-btn.tool::after {
+  content: "";
+  display: block;
+  position: relative;
+  background: #306bf47c;
+  width:5px;
+  height: 5px;
+  border-radius: 5px;
+
+  /* this prevents this container from interfering with normal page flow */
+  margin-top: -5px;
+
+  bottom:8px;
+  left: 32px;
 }

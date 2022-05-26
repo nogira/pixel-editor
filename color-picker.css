@@ -10,6 +10,7 @@
     left: calc(var(--h-mid) + 70px);
     display: grid;
     grid-template-columns: 200px 20px;
+    grid-gap: 5px;
     width: var(--HSV-width);
     height: 150px;
 

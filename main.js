@@ -12,22 +12,61 @@ const ctx = canvas.getContext("2d");
 
 const pixelArr = newPixArr();
 
+/**
+ * convert hsv color format to rgb
+ * @param {*} hue: 0-360
+ * @param {*} saturation 0-1
+ * @param {*} value 0-1
+ */
+function hsvToRgb(hue, saturation, value) {
+    // https://wikiless.org/wiki/HSL_and_HSV?lang=en
+    const k = (x, h) => (x + (h/60)) % 6;
+    const f = (x, h, s, v) => v - v * s * Math.max(0, Math.min(k(x, h), 4 - k(x, h), 1));
+
+    const r = 255 * f(5, hue, saturation, value);
+    const g = 255 * f(3, hue, saturation, value);
+    const b = 255 * f(1, hue, saturation, value);
+
+    return `rgb(${r}, ${g}, ${b})`;
+}
+// console.log(hsvToRgb(360, 0.66, 0.68)); // works :)
+
 // h:0-360 s/v: 0-1
-let HSV = {H: 222, S: 50, V: 50};
-let currentColor = "hsl(222, 50%, 50%)";
-let currentLeftTool = 'Pencil';
-let currentRightTool = 'Eraser';
+let HSV = {H: 222, S: 0.5, V: 0.5};
+let currentColor = hsvToRgb(HSV.H, HSV.S, HSV.V);
+let currentLeftTool = 'pencil';
+let currentRightTool = 'eraser';
 const eraserColor = "rgba(0, 0, 0, 0)";
+
+// set SV box color
+function setSVBoxColor(hue) {
+    const SVCanvas = document.getElementById("SV");
+    const ctx = SVCanvas.getContext("2d");
+    // reset canvas
+    ctx.clearRect(0, 0, 200, 140);
+
+    // length
+    for (let i = 0; i < 150; i++) {
+        // width
+        for (let j = 0; j < 200; j++) {
+            const saturation = j / 200;
+            const value = (-i + 150) / 150;
+            ctx.fillStyle = hsvToRgb(hue, saturation, value);
+            ctx.fillRect(j, i, 1, 1);
+        }
+    }
+}
+setSVBoxColor(HSV.H);
 
 // 200 x 140
 function handleSVChange(event) {
     if (event.buttons === 1) {
-        const saturation = event.offsetX / 200 * 100;
-        const value =  - (event.offsetY / 140 * 100) + 100;
-        console.log(saturation, value);
+        const saturation = event.offsetX / 200;
+        const value =  - (event.offsetY / 140) + 1;
+        // console.log(saturation, value);
         HSV.S = saturation;
         HSV.V = value;
-        currentColor = `hsl(${HSV.H}, ${HSV.S}%, ${HSV.V}%)`;
+        currentColor = hsvToRgb(HSV.H, saturation, value);
     }
 }
 $("#SV").on({
@@ -42,9 +81,12 @@ $("#SV").on({
 function handleHueChange(event) {
     if (event.buttons === 1) {
         //          invert
-        const hue = -360 - (event.offsetY / 140 * 360);
+        const hue = 360 - (event.offsetY / 150 * 360);
         HSV.H = hue;
-        currentColor = `hsl(${HSV.H}, ${HSV.S}%, ${HSV.V}%)`;
+        // console.log(hue);
+        currentColor = hsvToRgb(hue, HSV.S, HSV.V);
+        // update SV canvas
+        setSVBoxColor(hue);
     }
 }
 $("#Hue").on({
@@ -241,7 +283,7 @@ function pencilFillMiddlePixels(mousePixel, color) {
     }
 }
 function updatePixelArrayAndCanvas(pixelX, pixelY, color) {
-    console.log(pixelX, pixelY);
+    // console.log(pixelX, pixelY);
     pixelArr[pixelY][pixelX] = color;
     drawPixelOnCanvas(pixelX, pixelY, color);
 }
@@ -275,10 +317,10 @@ function handleMouseDown(event) {
         // left click
         case 1:
             switch (currentLeftTool) {
-                case 'Pencil':
+                case 'pencil':
                     handlePencilDrawing(event, currentColor);
                     break;
-                case 'Eraser':
+                case 'eraser':
                     handlePencilDrawing(event, eraserColor);
             }
             break;
@@ -286,10 +328,10 @@ function handleMouseDown(event) {
         // right click
         case 2:
             switch (currentRightTool) {
-                case 'Pencil':
+                case 'pencil':
                     handlePencilDrawing(event, currentColor);
                     break;
-                case 'Eraser':
+                case 'eraser':
                     handlePencilDrawing(event, eraserColor);
             }
             break;
@@ -382,8 +424,32 @@ $('#upload-img').on("input", function(e) {
     img.src = URL.createObjectURL(this.files[0]);
 });
 
+
+$('.tools').on('contextmenu', e => e.preventDefault());
+
+function handleToolSwitch(event) {
+    const toolId = event.currentTarget.id;
+    switch (event.buttons) {
+        // left click
+        case 1:
+            $('.left-btn').removeClass('left-btn');
+            $(`#${toolId}`).addClass('left-btn');
+            currentLeftTool = toolId;
+            break;
+        // right click
+        case 2:
+            $('.right-btn').removeClass('right-btn');
+            $(`#${toolId}`).addClass('right-btn');
+            currentRightTool = toolId;
+            break;
+    }
+}
+$('#pencil').on('mousedown', handleToolSwitch);
+$('#eraser').on('mousedown', handleToolSwitch);
+$('#dropper').on('mousedown', handleToolSwitch);
+
 let palleteHidden = true;
-$('#btn-pallete').click(() => {
+$('#pallete').click(() => {
     palleteHidden = !palleteHidden;
     $("#pick-color").prop("hidden", palleteHidden);
 
