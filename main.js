@@ -75,16 +75,23 @@ $("#SV").on({
         handleSVChange(event);
     }
 });
+// use delay between updates of 50ms to prevent too many updates freezing the 
+// SV render
+let lastSVUpdate = Date.now();
 // 20 x 150
 function handleHueChange(event) {
-    if (event.buttons === 1) {
-        //          invert
-        const hue = 360 - (event.offsetY / 150 * 360);
-        HSV.H = hue;
-        // console.log(hue);
-        currentColor = hsvToRgb(hue, HSV.S, HSV.V);
-        // update SV canvas
-        setSVBoxColor(hue);
+    const now = Date.now();
+    if (lastSVUpdate < now - 50) {
+        if (event.buttons === 1) {
+            //          invert
+            const hue = 360 - (event.offsetY / 150 * 360);
+            HSV.H = hue;
+            // console.log(hue);
+            currentColor = hsvToRgb(hue, HSV.S, HSV.V);
+            // update SV canvas
+            setSVBoxColor(hue);
+        }
+        lastSVUpdate = now;
     }
 }
 $("#Hue").on({
