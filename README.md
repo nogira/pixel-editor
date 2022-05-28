@@ -1,6 +1,6 @@
 # pixel-editor
 
-web-based pixel art editor in relatively vanilla javascript.
+web-based pixel art editor in very vanilla javascript.
 
 <sup>~(hence why all js in one file 🙃)</sup>
 
