@@ -19,32 +19,6 @@ function initCanvas(width, height) {
 }
 initCanvas(16, 16);
 
-/*
-TODO: fill
-
-when pixel is placed, get 3 pixels around it in the direction of the new pixel, 
-but not diagonals bc filling diagonals can result in crossing a boundary line
-      ▇
-    ▇⚪️▇
-     ⬆️
-there is the exception of the initial pixel, which goes in 4 directions
-
-full example:
-
-          3
-        3 2 3
-      3 2 1(2)3
-    3 2 1 0 1 2 3
-      3 2 1 2 3
-        3 2 3
-          3
-
-if a pixel is placed by 2 different previous pixels (e.g. the 2 in brackets 
-above), it seems as though we can exclude this pixel from the next iteration of 
-fills, as other pixels already have it covered. will have to test this just to 
-make sure.
-*/
-
 /**
  * convert hsv color format to rgb
  * @param {number} hue: 0-360
@@ -370,19 +344,25 @@ function updatePixelArrayAndCanvas(pixelX, pixelY, color) {
     editPixel(pixelX, pixelY, color);
     drawPixelOnCanvas(pixelX, pixelY, color);
 }
+/**
+ * // --GET POSITION OF MOUSE ON CANVAS--
+ * @param {*} event 
+ * @returns {{x: number, y: number}} current pixel position of mouse
+ */
+function getCurrentPixel(event) {
+    // get the position of the canvas
+    const rect = canvas.getBoundingClientRect();
+    // minus 1 bc border
+    const mousePosX = event.clientX - rect.left - 1;
+    const mousePosY = event.clientY - rect.top - 1;
+    const posToPixel = (pos) => Math.floor(pos / image.px);
+    return {
+        x: posToPixel(mousePosX),
+        y: posToPixel(mousePosY),
+    };
+}
 function handlePencilDrawing(event, color) {
-    const mousePixel = {};
-    // --update position of mouse on canvas--
-    {
-        // get the position of the canvas
-        const rect = canvas.getBoundingClientRect();
-        // minus 1 bc border
-        const mousePosX = event.clientX - rect.left - 1;
-        const mousePosY = event.clientY - rect.top - 1;
-        const posToPixel = (pos) => Math.floor(pos / image.px);
-        mousePixel.x = posToPixel(mousePosX);
-        mousePixel.y = posToPixel(mousePosY);
-    }
+    const mousePixel = getCurrentPixel(event);
     updatePixelArrayAndCanvas(mousePixel.x, mousePixel.y, color);
 
     // if input is continuous, fill in middle pixels
@@ -394,18 +374,9 @@ function handlePencilDrawing(event, color) {
     prevChangedPixel = {...mousePixel};
 }
 
-
 function handleDropper(event) {
     // --GET POSITION OF MOUSE ON CANVAS--
-    const mousePixel = {};
-    // get the position of the canvas
-    const rect = canvas.getBoundingClientRect();
-    // minus 1 bc border
-    const mousePosX = event.clientX - rect.left - 1;
-    const mousePosY = event.clientY - rect.top - 1;
-    const posToPixel = (pos) => Math.floor(pos / image.px);
-    mousePixel.x = posToPixel(mousePosX);
-    mousePixel.y = posToPixel(mousePosY);
+    const mousePixel = getCurrentPixel(event);
     /*
     set current color to the color of the pixel the mouse is on
 
@@ -422,6 +393,92 @@ function handleDropper(event) {
     
 }
 
+async function handleFill(event) {
+    /*
+    TODO: fill
+
+    when pixel is placed, get 3 pixels around it in the direction of the new 
+    pixel, but not diagonals bc filling diagonals can result in crossing a 
+    boundary line
+          ▇
+        ▇⚪️▇
+         ⬆️
+    there is the exception of the initial pixel, which goes in 4 directions
+
+    full example:
+
+              3
+            3 2 3
+          3 2 1(2)3
+        3 2 1 0 1 2 3
+          3 2 1 2 3
+            3 2 3
+              3
+
+    if a pixel is placed by 2 different previous pixels (e.g. the 2 in brackets 
+    above), it seems as though we can exclude this pixel from the next iteration
+    of fills, as other pixels already have it covered. will have to test this 
+    just to make sure.
+    */
+    const mousePixel = getCurrentPixel(event);
+    // get the color of the pixel the mouse is on
+    const firstPixelColor = getPixel(mousePixel.x, mousePixel.y);
+    // change the color of the pixel the mouse is on to the current color
+    const newColor = tool.left.color.rgba;
+    updatePixelArrayAndCanvas(mousePixel.x, mousePixel.y, newColor);
+
+    // console.log(mousePixel.x, mousePixel.y)
+    // first check pixel above, down, left, and right
+    const check = [
+        {x: 0, y: -1},
+        {x: 0, y: 1},
+        {x: -1, y: 0},
+        {x: 1, y: 0},
+    ]
+    // console.log(firstPixelColor);
+    // console.log(getPixel(mousePixel.x, mousePixel.y-1))
+
+    function arraysEqual(arr1, arr2) {
+        for (let i=0; i < arr1.length; i++) {
+            if (arr1[i] !== arr2[i]) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    let currentPixelsToCheck = [{...mousePixel}];
+    while (currentPixelsToCheck.length > 0) {
+        const nextPixels = new Set();
+        // console.log(JSON.stringify(currentPixelsToCheck));
+        for (const pixel of currentPixelsToCheck) {
+            for (const direction of check) {
+                const x = pixel.x + direction.x;
+                const y = pixel.y + direction.y;
+                if (0 <= x  && x < image.width && 0 <= y && y < image.height && arraysEqual(firstPixelColor, getPixel(x, y))) {
+                    updatePixelArrayAndCanvas(x, y, newColor);
+                    nextPixels.add({x, y});
+                }
+            }
+            // sleep 10ms bc looks cool
+            // await new Promise(resolve => setTimeout(resolve, 1));
+        }
+        currentPixelsToCheck = [...nextPixels];
+        // sleep 10ms bc looks cool
+        await new Promise(resolve => setTimeout(resolve, 20));
+    }
+
+    // TODO: then do 3 per new pixel based on direction
+
+    // TODO: to test performance, try another algorithm where direction is 
+    // excluded, and just does 4 per new pixels
+    // - using set() vs not using set
+    // - completely removing pixels that come up twice vs not removing them
+    // - 3 directions vs 4 directions
+    
+
+}
+
 function handleMouseDown(event) {
     function handleMouseType(event, btnType) {
         switch (tool[btnType].type) {
@@ -434,6 +491,12 @@ function handleMouseDown(event) {
                 break;
             case 'dropper':
                 handleDropper(event);
+                break;
+            case 'fill':
+                // dont use mousemove for fill bc fill lags
+                if (event.type != 'mousemove') {
+                    handleFill(event);
+                }
                 break;
         }
     }
@@ -454,6 +517,7 @@ $(canvas).on({
         handleMouseDown(event);
     },
     mousemove(event) {
+        // only use mousemove for pencil and eraser
         handleMouseDown(event);
     }
 });
@@ -511,22 +575,9 @@ function downloadImage(data, filename = 'untitled.png') {
     a.click();
 }
 
-
 $('#open-img').click(() => {
-    // var dataURL = canvas.toDataURL("image/png");
     $("#upload-img").click()
-    // downloadImage(dataURL, 'pixel art.png');
 });
-// document.getElementById('upload-img').addEventListener("input", (e) => {
-//     const input = document.getElementById('upload-img')
-//     var img = new Image();
-//     img.onload = function() {
-//         var ctx = document.getElementById('ctx').getContext('2d');
-//         ctx.drawImage(img, 0, 0);
-//     }
-//     img.src = URL.createObjectURL(input.files[0]);
-    
-// });
 
 
 $('#upload-img').on("input", function(e) {
@@ -641,6 +692,7 @@ function handleToolSwitch(event) {
 $('#pencil').on('mousedown', handleToolSwitch);
 $('#eraser').on('mousedown', handleToolSwitch);
 $('#dropper').on('mousedown', handleToolSwitch);
+$('#fill').on('mousedown', handleToolSwitch);
 
 let paletteType = 'left'; // this var is so palette knows which color to change when using palette to change colors
 function handleTogglePalette() {
