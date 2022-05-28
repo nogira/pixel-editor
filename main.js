@@ -1,16 +1,17 @@
-const px = 20;   // size of each pixel on the canvas
-
-let imgWidth = 16;   // in pixels
-let imgHeight = 16;   // in pixels
-
 const canvas = document.getElementById("displayCanvas");
-canvas.width = imgWidth * px;
-canvas.height = imgHeight * px;
-
 const image = {
     ctx: canvas.getContext("2d"),
-    array: newPixArr(),
+    array: [],
+    // width in pixels
+    width: 16,
+    // height in pixels
+    height: 16,
+    // width/height of each pixel on the canvas
+    px: 20,
 }
+image.array = newPixArr();
+canvas.width = image.width * image.px;
+canvas.height = image.height * image.px;
 
 /**
  * convert hsv color format to rgb
@@ -158,9 +159,9 @@ $("#hue").on({
  */ 
 function newPixArr() {
     const pixelArr = [];
-    for (let i = 0; i < imgHeight; i++) {
+    for (let i = 0; i < image.height; i++) {
         pixelArr.push([]);
-        for (let j = 0; j < imgWidth; j++) {
+        for (let j = 0; j < image.width; j++) {
             pixelArr[i].push("rgba(0, 0, 0, 0)");
         }
     }
@@ -170,9 +171,9 @@ function newPixArr() {
 
 //             THIS CODE IS KINDA USELESS FOR NOW
 // let checkeredTrack = true;
-// for (let i = 0; i < imgHeight; i++) {
+// for (let i = 0; i < image.height; i++) {
 //     pixelArr.push([]);
-//     for (let j = 0; j < imgWidth; j++) {
+//     for (let j = 0; j < image.width; j++) {
 //         if (checkeredTrack) {
 //             pixelArr[i].push("red");
 //             checkeredTrack = false;
@@ -186,17 +187,18 @@ function newPixArr() {
 // document.querySelector("h1").innerHTML = JSON.stringify(pixelArr);
 
 // render base image
-// for (let y = 0; y < imgHeight; y++) {
-//     for (let x = 0; x < imgWidth; x++) {
-//         const x0 = x * px
-//         const y0 = y * px
-//         const width = height = px
+// for (let y = 0; y < image.height; y++) {
+//     for (let x = 0; x < image.width; x++) {
+//         const x0 = x * image.px
+//         const y0 = y * image.px
+//         const width = height = image.px
 //         ctx.fillStyle = pixelArr[y][x];
 //         ctx.fillRect(x0, y0, width, height);
 //     }
 // }
 
 function drawPixelOnCanvas(x, y, color) {
+    const px = image.px;
     image.ctx.clearRect(x * px, y * px, px, px);
     // set the color of the pixel about to be drawn
     image.ctx.fillStyle = color;
@@ -327,7 +329,7 @@ function handlePencilDrawing(event, color) {
         // minus 1 bc border
         const mousePosX = event.clientX - rect.left - 1;
         const mousePosY = event.clientY - rect.top - 1;
-        const posToPixel = (pos) => Math.floor(pos / px);
+        const posToPixel = (pos) => Math.floor(pos / image.px);
         mousePixel.x = posToPixel(mousePosX);
         mousePixel.y = posToPixel(mousePosY);
     }
@@ -343,7 +345,7 @@ function handlePencilDrawing(event, color) {
 }
 
 
-function handleDropper(event, clickType) {
+function handleDropper(event) {
     // --GET POSITION OF MOUSE ON CANVAS--
     const mousePixel = {};
     // get the position of the canvas
@@ -351,46 +353,45 @@ function handleDropper(event, clickType) {
     // minus 1 bc border
     const mousePosX = event.clientX - rect.left - 1;
     const mousePosY = event.clientY - rect.top - 1;
-    const posToPixel = (pos) => Math.floor(pos / px);
+    const posToPixel = (pos) => Math.floor(pos / image.px);
     mousePixel.x = posToPixel(mousePosX);
     mousePixel.y = posToPixel(mousePosY);
+    /*
+    set current color to the color of the pixel the mouse is on
 
-    // set current color to the color of the pixel the mouse is on
-    tool[clickType].color.str = image.array[mousePixel.y][mousePixel.x];
+    we are always picking color for left click. why:
+      1. if we pick for left click while on left click, and right for right, 
+         then having dropper on right doesnt change left color
+      2. if we pick for opposite click, then if pencil right eraser left, then 
+         switch to dropper left to change left color, you instead change right 
+         color.
+    */
+    tool.left.color.str = image.array[mousePixel.y][mousePixel.x];
 }
 
 function handleMouseDown(event) {
+    function handleMouseType(event, btnType) {
+        switch (tool[btnType].type) {
+            case 'pencil':
+                handlePencilDrawing(event, tool[btnType].color.str);
+                break;
+            case 'eraser':
+                const eraserColor = "rgba(0, 0, 0, 0)";
+                handlePencilDrawing(event, eraserColor);
+                break;
+            case 'dropper':
+                handleDropper(event);
+                break;
+        }
+    }
     switch (event.buttons) {
         // left click
         case 1:
-            switch (tool.left.type) {
-                case 'pencil':
-                    handlePencilDrawing(event, tool.left.color.str);
-                    break;
-                case 'eraser':
-                    const eraserColor = "rgba(0, 0, 0, 0)";
-                    handlePencilDrawing(event, eraserColor);
-                    break;
-                case 'dropper':
-                    handleDropper(event, 'left');
-                    break;
-            }
+            handleMouseType(event, 'left');
             break;
-
         // right click
         case 2:
-            switch (tool.right.type) {
-                case 'pencil':
-                    handlePencilDrawing(event, tool.right.color.str);
-                    break;
-                case 'eraser':
-                    const eraserColor = "rgba(0, 0, 0, 0)";
-                    handlePencilDrawing(event, eraserColor);
-                    break;
-                case 'dropper':
-                    handleDropper(event, 'right');
-                    break;
-            }
+            handleMouseType(event, 'right');
             break;
     }
 }
@@ -427,12 +428,12 @@ function drawPixelOnImgCanvas(x, y, color, ctx) {
 $('#save-img').click(() => {
     // create a new image at correct scale
     const imgCanvas = document.createElement('canvas')
-    imgCanvas.width = imgWidth;
-    imgCanvas.height = imgHeight;
+    imgCanvas.width = image.width;
+    imgCanvas.height = image.height;
     const imgCtx = imgCanvas.getContext("2d");
 
-    for (let i=0; i < imgHeight; i++) {
-        for (let j=0; j < imgWidth; j++) {
+    for (let i=0; i < image.height; i++) {
+        for (let j=0; j < image.width; j++) {
             drawPixelOnImgCanvas(j, i, image.array[i][j], imgCtx);
         }
     }
@@ -473,7 +474,7 @@ $('#upload-img').on("input", function(e) {
     img.onload = function draw() {
         // canvas.width = this.width;
         // canvas.height = this.height;
-        image.ctx.drawImage(this, 0, 0/*, imgWidth * px, imgHeight * px*/); // FIXME: image not resizing
+        image.ctx.drawImage(this, 0, 0/*, image.width * image.px, image.height * image.px*/); // FIXME: image not resizing
     };
     img.onerror = function failed() {
         console.error("The provided file couldn't be loaded as an Image media");
