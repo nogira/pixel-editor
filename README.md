@@ -2,13 +2,11 @@
 
 web-based pixel art editor in very vanilla javascript.
 
-<sup>~(hence why all js in one file 🙃)</sup>
-
 <br>
 
-assign a tool to left-click by left-clicking tool. assign a tool to right-click by right-clicking tool.
+<sup>assign a tool to left-click by left-clicking tool. assign a tool to right-click by right-clicking tool.</sup>
 
-change color for left-click by left-clicking palette button. for right-click, right-click palette button.
+<sup>change color for left-click by left-clicking palette button. for right-click, right-click palette button.</sup>
 
 <br>
 
