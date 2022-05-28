@@ -439,13 +439,6 @@ $(canvas).on('contextmenu', e => e.preventDefault());
 
 // --DOWNLOAD IMAGE--
 
-function drawPixelOnImgCanvas(x, y, color, ctx) {
-    ctx.clearRect(x, y, 1, 1);
-    // set the color of the pixel about to be drawn
-    ctx.fillStyle = color;
-    //          x0,y0,width,height
-    ctx.fillRect(x, y, 1, 1);
-}
 
 // Convert canvas to image
 $('#save-img').click(() => {
@@ -455,11 +448,8 @@ $('#save-img').click(() => {
     imgCanvas.height = image.height;
     const imgCtx = imgCanvas.getContext("2d");
 
-    for (let i=0; i < image.height; i++) {
-        for (let j=0; j < image.width; j++) {
-            drawPixelOnImgCanvas(j, i, image.array[i][j], imgCtx);
-        }
-    }
+    const iData = new ImageData(image.array, image.width, image.height);
+    imgCtx.putImageData(iData, 0, 0);
 
     const dataURL = imgCanvas.toDataURL("image/png");
     downloadImage(dataURL, 'pixel art.png');
@@ -512,8 +502,8 @@ $('#upload-img').on("input", function(e) {
         const tempCtx = tempCanvas.getContext('2d');
         tempCtx.imageSmoothingEnabled = false;
         tempCtx.drawImage(this, 0, 0);
-        const myData = tempCtx.getImageData(0, 0, this.width, this.height);
-        console.log(myData);
+        const imgData = tempCtx.getImageData(0, 0, this.width, this.height);
+        image.array = imgData.data;
     };
     img.onerror = function failed() {
         console.error("The provided file couldn't be loaded as an Image media");
