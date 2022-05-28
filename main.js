@@ -6,9 +6,11 @@ let imgHeight = 16;   // in pixels
 const canvas = document.getElementById("displayCanvas");
 canvas.width = imgWidth * px;
 canvas.height = imgHeight * px;
-const ctx = canvas.getContext("2d");
 
-const pixelArr = newPixArr();
+const image = {
+    ctx: canvas.getContext("2d"),
+    array: newPixArr(),
+}
 
 /**
  * convert hsv color format to rgb
@@ -29,14 +31,24 @@ function hsvToRgb(hue, saturation, value) {
 }
 // console.log(hsvToRgb(360, 0.66, 0.68)); // works :)
 
-// h:0-360 s/v: 0-1
-let HSV = {H: 360, S: 0.5, V: 1};
-let currentColor = hsvToRgb(HSV.H, HSV.S, HSV.V);
-let currentLeftTool = 'pencil';
-let currentRightTool = 'eraser';
-const eraserColor = "rgba(0, 0, 0, 0)";
-
-// init
+const tool = {
+    left: {
+        type: 'pencil',
+        color: {
+            // h:0-360 s/v: 0-1
+            hsv: {h: 360, s: 0.5, v: 1},
+            str: hsvToRgb(360, 0.5, 1),
+        },
+    },
+    right: {
+        type: 'eraser',
+        color: {
+            // h:0-360 s/v: 0-1
+            hsv: {h: 360, s: 0.5, v: 1},
+            str: hsvToRgb(360, 0.5, 1),
+        },
+    },
+}
 
 // set SV box color
 function setSVBoxColor(hue) {
@@ -57,13 +69,11 @@ function setSVBoxColor(hue) {
         }
     }
 }
-// init sv box
-setSVBoxColor(HSV.H);
 
 function updateSVMarker(event) {
     const svMarker = document.getElementById("sv-marker");
     // update color
-    svMarker.style.backgroundColor = currentColor;
+    svMarker.style.backgroundColor = tool[paletteType].color.str;
     // move marker
     svMarker.style.top = (event.offsetY - 5) + "px";
     svMarker.style.left = (event.offsetX - 5) + "px";
@@ -71,14 +81,11 @@ function updateSVMarker(event) {
 function updateHueMarker(event) {
     const hueMarker = document.getElementById("hue-marker");
     // update color
-    const currentHueColor = hsvToRgb(HSV.H, 1, 1);
+    const currentHueColor = hsvToRgb(tool[paletteType].color.hsv.h, 1, 1);
     hueMarker.style.backgroundColor = currentHueColor;
     // move marker
     hueMarker.style.top = (event.offsetY - 10) + "px";
 }
-// init markers
-updateSVMarker({offsetX: 100, offsetY: 0});
-updateHueMarker({offsetX: 0, offsetY: 0});
 
 // 200 x 150
 function handleSVChange(event) {
@@ -86,9 +93,10 @@ function handleSVChange(event) {
         const saturation = event.offsetX / 200;
         const value =  - (event.offsetY / 140) + 1;
         // console.log(saturation, value);
-        HSV.S = saturation;
-        HSV.V = value;
-        currentColor = hsvToRgb(HSV.H, saturation, value);
+        const hsv = tool[paletteType].color.hsv; // reference to hsv object
+        hsv.s = saturation;
+        hsv.v = value;
+        tool[paletteType].color.str = hsvToRgb(hsv.h, saturation, value);
 
         updateSVMarker(event);
     }
@@ -111,16 +119,17 @@ function handleHueChange(event) {
         if (event.buttons === 1) {
             //          invert
             const hue = 360 - (event.offsetY / 150 * 360);
-            HSV.H = hue;
+            const hsv = tool[paletteType].color.hsv; // reference to hsv object
+            hsv.h = hue;
             // console.log(hue);
-            currentColor = hsvToRgb(hue, HSV.S, HSV.V);
+            tool[paletteType].color.str = hsvToRgb(hue, hsv.s, hsv.v);
             // update SV canvas
             setSVBoxColor(hue);
 
             updateHueMarker(event);
             // update sv marker color bc sv box has changed
             const svMarker = document.getElementById("sv-marker");
-            svMarker.style.backgroundColor = currentColor;
+            svMarker.style.backgroundColor = tool[paletteType].color.str;
         }
         lastSVUpdate = now;
     }
@@ -188,11 +197,11 @@ function newPixArr() {
 // }
 
 function drawPixelOnCanvas(x, y, color) {
-    ctx.clearRect(x * px, y * px, px, px);
+    image.ctx.clearRect(x * px, y * px, px, px);
     // set the color of the pixel about to be drawn
-    ctx.fillStyle = color;
+    image.ctx.fillStyle = color;
     //           x0,     y0,  width, height
-    ctx.fillRect(x * px, y * px, px, px);
+    image.ctx.fillRect(x * px, y * px, px, px);
 }
 
 
@@ -306,7 +315,7 @@ function pencilFillMiddlePixels(mousePixel, color) {
 }
 function updatePixelArrayAndCanvas(pixelX, pixelY, color) {
     // console.log(pixelX, pixelY);
-    pixelArr[pixelY][pixelX] = color;
+    image.array[pixelY][pixelX] = color;
     drawPixelOnCanvas(pixelX, pixelY, color);
 }
 function handlePencilDrawing(event, color) {
@@ -334,7 +343,7 @@ function handlePencilDrawing(event, color) {
 }
 
 
-function handleDropper(event) {
+function handleDropper(event, clickType) {
     // --GET POSITION OF MOUSE ON CANVAS--
     const mousePixel = {};
     // get the position of the canvas
@@ -347,37 +356,39 @@ function handleDropper(event) {
     mousePixel.y = posToPixel(mousePosY);
 
     // set current color to the color of the pixel the mouse is on
-    currentColor = pixelArr[mousePixel.y][mousePixel.x];
+    tool[clickType].color.str = image.array[mousePixel.y][mousePixel.x];
 }
 
 function handleMouseDown(event) {
     switch (event.buttons) {
         // left click
         case 1:
-            switch (currentLeftTool) {
+            switch (tool.left.type) {
                 case 'pencil':
-                    handlePencilDrawing(event, currentColor);
+                    handlePencilDrawing(event, tool.left.color.str);
                     break;
                 case 'eraser':
+                    const eraserColor = "rgba(0, 0, 0, 0)";
                     handlePencilDrawing(event, eraserColor);
                     break;
                 case 'dropper':
-                    handleDropper(event);
+                    handleDropper(event, 'left');
                     break;
             }
             break;
 
         // right click
         case 2:
-            switch (currentRightTool) {
+            switch (tool.right.type) {
                 case 'pencil':
-                    handlePencilDrawing(event, currentColor);
+                    handlePencilDrawing(event, tool.right.color.str);
                     break;
                 case 'eraser':
+                    const eraserColor = "rgba(0, 0, 0, 0)";
                     handlePencilDrawing(event, eraserColor);
                     break;
                 case 'dropper':
-                    handleDropper(event);
+                    handleDropper(event, 'right');
                     break;
             }
             break;
@@ -422,7 +433,7 @@ $('#save-img').click(() => {
 
     for (let i=0; i < imgHeight; i++) {
         for (let j=0; j < imgWidth; j++) {
-            drawPixelOnImgCanvas(j, i, pixelArr[i][j], imgCtx);
+            drawPixelOnImgCanvas(j, i, image.array[i][j], imgCtx);
         }
     }
 
@@ -462,7 +473,7 @@ $('#upload-img').on("input", function(e) {
     img.onload = function draw() {
         // canvas.width = this.width;
         // canvas.height = this.height;
-        ctx.drawImage(this, 0, 0/*, imgWidth * px, imgHeight * px*/); // FIXME: image not resizing
+        image.ctx.drawImage(this, 0, 0/*, imgWidth * px, imgHeight * px*/); // FIXME: image not resizing
     };
     img.onerror = function failed() {
         console.error("The provided file couldn't be loaded as an Image media");
@@ -480,13 +491,13 @@ function handleToolSwitch(event) {
         case 1:
             $('.left-btn').removeClass('left-btn');
             $(`#${toolId}`).addClass('left-btn');
-            currentLeftTool = toolId;
+            tool.left.type = toolId;
             break;
         // right click
         case 2:
             $('.right-btn').removeClass('right-btn');
             $(`#${toolId}`).addClass('right-btn');
-            currentRightTool = toolId;
+            tool.right.type = toolId;
             break;
     }
 }
@@ -495,8 +506,27 @@ $('#eraser').on('mousedown', handleToolSwitch);
 $('#dropper').on('mousedown', handleToolSwitch);
 
 let palleteHidden = true;
-$('#pallete').click(() => {
+let paletteType = 'left';
+function handleTogglePalette() {
+    const hsv = tool[paletteType].color.hsv;
+    setSVBoxColor(hsv.h);
+    updateSVMarker({offsetX: hsv.s * 200, offsetY: (-hsv.v + 1) * 150});
+    updateHueMarker({offsetY: (-hsv.h/360 + 1) * 150});
+}
+$('#pallete').on('mousedown', (event) => {
+    // update palette to current color of click used (i.e. right or left click)
+    switch (event.buttons) {
+        // left click
+        case 1:
+            paletteType = 'left';
+            handleTogglePalette();
+            break;
+        // right click
+        case 2:
+            paletteType = 'right';
+            handleTogglePalette();
+            break;
+    }
     palleteHidden = !palleteHidden;
     $("#pick-color").prop("hidden", palleteHidden);
-
 });
