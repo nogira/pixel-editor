@@ -32,14 +32,18 @@
     background-color: white;
     padding: var(--palette-box-padding);
     border-radius: 5px;
+
+    box-shadow: rgb(225, 225, 225) 0px 0px 10px;
+}
+#sv, #hue {
+    height: var(--grid-item-height);
+    cursor: pointer;
 }
 #sv {
     width: var(--satVal-width);
-    height: var(--grid-item-height);
 }
 #hue {
     width: var(--hue-width);
-    height: var(--grid-item-height);
     background: linear-gradient(rgb(255,0,0), rgb(0,0,255), rgb(0,255,0), rgb(255,0,0));
 }
 .marker {

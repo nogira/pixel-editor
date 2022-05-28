@@ -3,19 +3,47 @@ const image = {
     ctx: canvas.getContext("2d"),
     array: null,
     // width in pixels
-    width: 16,
+    width: null,
     // height in pixels
-    height: 16,
+    height: null,
     // width/height of each pixel on the canvas
     px: 20,
 }
-// create array of zeros
-image.array = new Uint8ClampedArray(image.height * image.width * 4);
-canvas.width = image.width * image.px;
-canvas.height = image.height * image.px;
+function initCanvas(width, height) {
+    // create image array of zeros
+    image.array = new Uint8ClampedArray(height * width * 4);
+    image.width = width;
+    image.height = height;
+    canvas.width = width * image.px;
+    canvas.height = height * image.px;
+}
+initCanvas(16, 16);
 
+/*
+TODO: fill
 
-// TODO: get dropper to change current hsv color values
+when pixel is placed, get 3 pixels around it in the direction of the new pixel, 
+but not diagonals bc filling diagonals can result in crossing a boundary line
+      ▇
+    ▇⚪️▇
+     ⬆️
+there is the exception of the initial pixel, which goes in 4 directions
+
+full example:
+
+          3
+        3 2 3
+      3 2 1(2)3
+    3 2 1 0 1 2 3
+      3 2 1 2 3
+        3 2 3
+          3
+
+if a pixel is placed by 2 different previous pixels (e.g. the 2 in brackets 
+above), it seems as though we can exclude this pixel from the next iteration of 
+fills, as other pixels already have it covered. will have to test this just to 
+make sure.
+*/
 
 /**
  * convert hsv color format to rgb
@@ -123,8 +151,10 @@ function updateSVMarker(event) {
 }
 function updateHueMarker(event) {
     const hueMarker = document.getElementById("hue-marker");
-    // update hue marker color
-    hueMarker.style.backgroundColor = rgbaArrToStr(tool[paletteType].color.rgba);
+    // update hue marker color to high saturation hue
+    hueMarker.style.backgroundColor = rgbaArrToStr(
+        hsvaToRgba(tool[paletteType].color.hsv.h, 1, 1, 1)
+    );
     // move marker
     hueMarker.style.top = (event.offsetY - 10) + "px";
 }
@@ -437,6 +467,23 @@ $(canvas).on('contextmenu', e => e.preventDefault());
 
 
 
+// --NEW IMAGE--
+
+$('#new-img').click(() => {
+    const modalHidden = $("#new-img-modal").prop("hidden");
+    $("#new-img-modal").prop("hidden", !modalHidden);
+});
+$('#exit-new-img').click(() => {
+    $("#new-img-modal").prop("hidden", true);
+});
+$('#confirm-new-img').click(() => {
+    const width = $("#img-width").val();
+    const height = $("#img-height").val();
+    initCanvas(width, height);
+
+    $("#new-img-modal").prop("hidden", true);
+});
+
 // --DOWNLOAD IMAGE--
 
 
@@ -485,24 +532,30 @@ $('#open-img').click(() => {
 $('#upload-img').on("input", function(e) {
     const img = new Image();
     img.onload = function draw() {
-        // canvas.width = this.width;
-        // canvas.height = this.height;
-        const width = canvas.width;
-        const height = canvas.height;
-        image.ctx.clearRect(0, 0, width, height);
+        // --DRAW RESIZED IMAGE ON CANVAS--
+        const width = this.width;
+        const height = this.height;
+        image.width = width;
+        image.height = height;
+
+        const canvasWidth = width * image.px;
+        const canvasHeight = height * image.px;
+        canvas.width = canvasWidth;
+        canvas.height = canvasHeight;
+
+        image.ctx.clearRect(0, 0, canvasWidth, canvasHeight);
         // prevent blurring pixel image when uploaded (it seems to reset if only
         // called once at top of code, so must called right before each uppload)
         image.ctx.imageSmoothingEnabled = false;
-        image.ctx.drawImage(this, 0, 0, width, height); // FIXME: image not resizing
-        console.log(image.ctx.imageSmoothingEnabled);
+        image.ctx.drawImage(this, 0, 0, canvasWidth, canvasHeight);
 
-        // creat rgba array from image
-        // image.array = 
-        const tempCanvas = new OffscreenCanvas(this.width, this.height);
+        // --CREATE RGBA ARRAY FROM IMAGE--
+        const tempCanvas = new OffscreenCanvas(width, height);
         const tempCtx = tempCanvas.getContext('2d');
         tempCtx.imageSmoothingEnabled = false;
         tempCtx.drawImage(this, 0, 0);
-        const imgData = tempCtx.getImageData(0, 0, this.width, this.height);
+        // get rgba array from image
+        const imgData = tempCtx.getImageData(0, 0, width, height);
         image.array = imgData.data;
     };
     img.onerror = function failed() {

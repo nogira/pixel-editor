@@ -12,6 +12,44 @@ i {
   align-self: right;
 }
 
+/* -------------------------------------------------------------------------- */
+
+
+#new-img-modal {
+  position: absolute;
+  top: 60px;
+  left: calc(50% - 200px);
+  margin:auto;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 20px 20px 50px;
+  grid-gap: 10px;
+
+  background-color: white;
+  border-radius: 5px;
+  box-shadow: rgb(225, 225, 225) 0px 0px 10px;
+  padding: 20px;
+  padding-top: 30px;
+}
+#new-img-modal > div,
+#new-img-modal > input,
+#new-img-modal > i {
+  align-self: center;
+  justify-self: center;
+  /* margin-top:20px */
+}
+#new-img-modal > i {
+  padding-top:20px;
+}
+
+#exit-new-img,
+#confirm-new-img {
+  cursor: pointer;
+}
+
+
+/* -------------------------------------------------------------------------- */
+
 .left-btn.tool::before {
   content: "";
   display: block;

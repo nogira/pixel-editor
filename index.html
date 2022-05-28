@@ -12,11 +12,26 @@
         <header class="d-flex flex-wrap justify-content-center py-3 mb-4 border-bottom">
       
             <ul class="nav nav-pills">
-                <input type="file" id="upload-img" accept="image/png" hidden>
+                <li id="new-img" class="nav-item">
+                    <a href="#" class="nav-link">
+                        <i class="fas fa-file"></i>
+                    </a>
+                </li>
+                <div id="new-img-modal" hidden> <!--can't place within li above bc then it's a part of the button, so if i click the modal it closes-->
+                    <div>width (px)</div>
+                    <input type="number" value="16" id="img-width" style="width:80px"/>
+                    <div>height (px)</div>
+                    <input type="number" value="16" id="img-height" style="width:80px"/>
+                    
+                    <i id="exit-new-img" class="fa fa-times"></i>
+                    <i id="confirm-new-img" class="fa fa-check"></i>
+                </div>
+                <input type="file" id="upload-img" accept="image/png" hidden> <!-- moving this inside <li> of open-img causes jquery stack overflow for some reason-->
                 <li id="open-img" class="nav-item">
                     <a href="#" class="nav-link">
                         <i class="fa fa-folder-open"></i>
                     </a>
+                    
                 </li>
                 <li id="save-img" class="nav-item">
                     <a href="#" class="nav-link">
@@ -43,6 +58,11 @@
                         <i class="fas fa-eraser"></i>
                     </a>
                 </li>
+                <!-- <li id="fill" class="nav-item tool">
+                    <a href="#" class="nav-link">
+                        <i class="fas fa-fill-drip"></i>
+                    </a>
+                </li> -->
                 <li id="dropper" class="nav-item tool">
                     <a href="#" class="nav-link">
                         <i class="fas fa-eye-dropper"></i>
