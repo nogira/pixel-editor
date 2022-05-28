@@ -2,7 +2,7 @@
 
 web-based pixel art editor in relatively vanilla javascript.
 
-<sup>(hence why all js in one file 🙃)</sup>
+<sup>~(hence why all js in one file 🙃)</sup>
 
 <br>
 
