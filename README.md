@@ -1,15 +1,14 @@
 # pixel-editor
 
-web-based pixel art editor in relatively vanilla javascript (hence why all js in one file 🙃).
+web-based pixel art editor in relatively vanilla javascript.
 
-<sup>~ not meant for actual use, just a learning project.</sup>
+<sup>(hence why all js in one file 🙃)</sup>
 
+<br>
 
 assign a tool to left-click by left-clicking tool. assign a tool to right-click by right-clicking tool.
 
 change color for left-click by left-clicking palette button. for right-click, right-click palette button.
-
-can save images, but not yet upload images.
 
 <br>
 
