@@ -13,11 +13,14 @@ image.array = newPixArr();
 canvas.width = image.width * image.px;
 canvas.height = image.height * image.px;
 
+// TODO: get dropper to change current hsv color values
+
 /**
  * convert hsv color format to rgb
- * @param {*} hue: 0-360
- * @param {*} saturation 0-1
- * @param {*} value 0-1
+ * @param {number} hue: 0-360
+ * @param {number} saturation 0-1
+ * @param {number} value 0-1
+ * @returns {string} rgb color string
  */
 function hsvToRgb(hue, saturation, value) {
     // https://wikiless.org/wiki/HSL_and_HSV?lang=en
@@ -30,7 +33,40 @@ function hsvToRgb(hue, saturation, value) {
 
     return `rgb(${r}, ${g}, ${b})`;
 }
-// console.log(hsvToRgb(360, 0.66, 0.68)); // works :)
+/**
+ * 
+ * @param {number} red 0-255
+ * @param {number} green 0-255
+ * @param {number} blue 0-255
+ * @returns {{h: number, s: number, v: number}} h:0-360, s:0-1, v:0-1
+ */
+function rgbToHsv(red, green, blue) {
+    // https://math.stackexchange.com/questions/556341/rgb-to-hsv-color-conversion-algorithm
+    const r = red / 255;
+    const g = green / 255;
+    const b = blue / 255;
+    const C_max = Math.max(r, g, b);
+    const C_min = Math.min(r, g, b);
+    // VALUE
+    const v = C_max;
+    if (C_min == C_max) {
+        return {h: 0, s: 0, v: v};
+    }
+    const D = C_max - C_min;
+    // SATURATION
+    const s = D / C_max;
+    // HUE
+    let h = 60;
+    if (r == C_max) {
+        h *= ((g - b) / D) % 6;
+    } else if (g == C_max) {
+        h *= ((b - r) / D) + 2;
+    } else if (b == C_max) {
+        h *= ((r - g) / D) + 4;
+    }
+    return {h: h, s: s, v: v};
+}
+rgbToHsv(100, 255, 100);
 
 const tool = {
     left: {
@@ -38,6 +74,7 @@ const tool = {
         color: {
             // h:0-360 s/v: 0-1
             hsv: {h: 360, s: 0.5, v: 1},
+            // rgb string (e.g. rgb(255, 0, 0))
             str: hsvToRgb(360, 0.5, 1),
         },
     },
@@ -46,6 +83,7 @@ const tool = {
         color: {
             // h:0-360 s/v: 0-1
             hsv: {h: 360, s: 0.5, v: 1},
+            // rgb string (e.g. rgb(255, 0, 0))
             str: hsvToRgb(360, 0.5, 1),
         },
     },
@@ -366,7 +404,11 @@ function handleDropper(event) {
          switch to dropper left to change left color, you instead change right 
          color.
     */
-    tool.left.color.str = image.array[mousePixel.y][mousePixel.x];
+    const pixelColor = image.array[mousePixel.y][mousePixel.x];
+    tool.left.color.str = pixelColor;
+    const [_, r, g, b] = pixelColor.match(/^rgba?\(([\d\.]+), ([\d\.]+), ([\d\.]+)/);
+    tool.left.color.hsv = rgbToHsv(r, g, b);
+    console.log(tool.left.color.hsv);
 }
 
 function handleMouseDown(event) {
@@ -506,8 +548,7 @@ $('#pencil').on('mousedown', handleToolSwitch);
 $('#eraser').on('mousedown', handleToolSwitch);
 $('#dropper').on('mousedown', handleToolSwitch);
 
-let palleteHidden = true;
-let paletteType = 'left';
+let paletteType = 'left'; // this var is so palette knows which color to change when using palette to change colors
 function handleTogglePalette() {
     const hsv = tool[paletteType].color.hsv;
     setSVBoxColor(hsv.h);
@@ -515,19 +556,23 @@ function handleTogglePalette() {
     updateHueMarker({offsetY: (-hsv.h/360 + 1) * 150});
 }
 $('#pallete').on('mousedown', (event) => {
-    // update palette to current color of click used (i.e. right or left click)
-    switch (event.buttons) {
-        // left click
-        case 1:
-            paletteType = 'left';
-            handleTogglePalette();
-            break;
-        // right click
-        case 2:
-            paletteType = 'right';
-            handleTogglePalette();
-            break;
+    const palleteHidden = $("#pick-color").prop("hidden");
+    // update palette to current color of click used (i.e. right or left click) 
+    // when palette unhidden
+    if (palleteHidden) {
+        switch (event.buttons) {
+            // left click
+            case 1:
+                paletteType = 'left';
+                handleTogglePalette();
+                break;
+            // right click
+            case 2:
+                paletteType = 'right';
+                handleTogglePalette();
+                break;
+        }
     }
-    palleteHidden = !palleteHidden;
-    $("#pick-color").prop("hidden", palleteHidden);
+    // unhide palette
+    $("#pick-color").prop("hidden", !palleteHidden);
 });
