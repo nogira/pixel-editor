@@ -75,8 +75,11 @@
 
             <link rel="stylesheet" type="text/css" href="./color-picker.css" />
             <div id="pick-color" hidden>
-                <canvas id="SV" width="200"></canvas>
-                <div id="Hue"></div>
+                <div id="sv-marker" class="marker"></div>
+                <canvas id="sv" width="200"></canvas> <!-- for some reason need width=200 here bc css isn't applied properly-->
+                <div id="hue">
+                    <div id="hue-marker" class="marker"></div>
+                </div>
             </div>
 
         </header>

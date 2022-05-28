@@ -30,18 +30,21 @@ function hsvToRgb(hue, saturation, value) {
 // console.log(hsvToRgb(360, 0.66, 0.68)); // works :)
 
 // h:0-360 s/v: 0-1
-let HSV = {H: 222, S: 0.5, V: 0.5};
+let HSV = {H: 360, S: 0.5, V: 1};
 let currentColor = hsvToRgb(HSV.H, HSV.S, HSV.V);
 let currentLeftTool = 'pencil';
 let currentRightTool = 'eraser';
 const eraserColor = "rgba(0, 0, 0, 0)";
 
+// init
+
 // set SV box color
 function setSVBoxColor(hue) {
-    const SVCanvas = document.getElementById("SV");
+    const SVCanvas = document.getElementById("sv");
+    // console.log(SVCanvas.width, SVCanvas.height);
     const ctx = SVCanvas.getContext("2d");
     // reset canvas
-    ctx.clearRect(0, 0, 200, 140);
+    ctx.clearRect(0, 0, 200, 150);
 
     // length
     for (let i = 0; i < 150; i++) {
@@ -54,7 +57,28 @@ function setSVBoxColor(hue) {
         }
     }
 }
+// init sv box
 setSVBoxColor(HSV.H);
+
+function updateSVMarker(event) {
+    const svMarker = document.getElementById("sv-marker");
+    // update color
+    svMarker.style.backgroundColor = currentColor;
+    // move marker
+    svMarker.style.top = (event.offsetY - 5) + "px";
+    svMarker.style.left = (event.offsetX - 5) + "px";
+}
+function updateHueMarker(event) {
+    const hueMarker = document.getElementById("hue-marker");
+    // update color
+    const currentHueColor = hsvToRgb(HSV.H, 1, 1);
+    hueMarker.style.backgroundColor = currentHueColor;
+    // move marker
+    hueMarker.style.top = (event.offsetY - 10) + "px";
+}
+// init markers
+updateSVMarker({offsetX: 100, offsetY: 0});
+updateHueMarker({offsetX: 0, offsetY: 0});
 
 // 200 x 150
 function handleSVChange(event) {
@@ -65,9 +89,11 @@ function handleSVChange(event) {
         HSV.S = saturation;
         HSV.V = value;
         currentColor = hsvToRgb(HSV.H, saturation, value);
+
+        updateSVMarker(event);
     }
 }
-$("#SV").on({
+$("#sv").on({
     mousedown(event) {
         handleSVChange(event);
     },
@@ -90,11 +116,16 @@ function handleHueChange(event) {
             currentColor = hsvToRgb(hue, HSV.S, HSV.V);
             // update SV canvas
             setSVBoxColor(hue);
+
+            updateHueMarker(event);
+            // update sv marker color bc sv box has changed
+            const svMarker = document.getElementById("sv-marker");
+            svMarker.style.backgroundColor = currentColor;
         }
         lastSVUpdate = now;
     }
 }
-$("#Hue").on({
+$("#hue").on({
     mousedown(event) {
         handleHueChange(event);
     },
