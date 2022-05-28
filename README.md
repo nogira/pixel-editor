@@ -12,5 +12,5 @@ can save images, but not yet upload images.
 <br>
 
 <h3 align="center">
-  ✨ <a href="https://nogira.github.io/stake-claim-calculator/">click here to use</a> ✨
+  ✨ <a href="https://nogira.github.io/pixel-editor/">click here to use</a> ✨
 </h3>
