@@ -1,7 +1,7 @@
 const canvas = document.getElementById("displayCanvas");
 const image = {
     ctx: canvas.getContext("2d"),
-    array: [],
+    array: null,
     // width in pixels
     width: 16,
     // height in pixels
@@ -9,9 +9,11 @@ const image = {
     // width/height of each pixel on the canvas
     px: 20,
 }
-image.array = newPixArr();
+// create array of zeros
+image.array = new Uint8ClampedArray(image.height * image.width * 4);
 canvas.width = image.width * image.px;
 canvas.height = image.height * image.px;
+
 
 // TODO: get dropper to change current hsv color values
 
@@ -20,9 +22,10 @@ canvas.height = image.height * image.px;
  * @param {number} hue: 0-360
  * @param {number} saturation 0-1
  * @param {number} value 0-1
- * @returns {string} rgb color string
+ * @param {number} alpha 0-1
+ * @returns {Array<number>} [red, green, blue, alpha] vals 0-255
  */
-function hsvToRgb(hue, saturation, value) {
+function hsvaToRgba(hue, saturation, value, alpha) {
     // https://wikiless.org/wiki/HSL_and_HSV?lang=en
     const k = (x, h) => (x + (h/60)) % 6;
     const f = (x, h, s, v) => v - v * s * Math.max(0, Math.min(k(x, h), 4 - k(x, h), 1));
@@ -30,8 +33,9 @@ function hsvToRgb(hue, saturation, value) {
     const r = 255 * f(5, hue, saturation, value);
     const g = 255 * f(3, hue, saturation, value);
     const b = 255 * f(1, hue, saturation, value);
+    const a = 255 * alpha;
 
-    return `rgb(${r}, ${g}, ${b})`;
+    return new Uint8ClampedArray([r, g, b, a]);
 }
 /**
  * 
@@ -66,25 +70,23 @@ function rgbToHsv(red, green, blue) {
     }
     return {h: h, s: s, v: v};
 }
-rgbToHsv(100, 255, 100);
+function rgbaArrToStr(arr) {
+    return `rgba(${arr[0]}, ${arr[1]}, ${arr[2]}, ${arr[3]})`;
+}
 
 const tool = {
     left: {
         type: 'pencil',
         color: {
-            // h:0-360 s/v: 0-1
-            hsv: {h: 360, s: 0.5, v: 1},
-            // rgb string (e.g. rgb(255, 0, 0))
-            str: hsvToRgb(360, 0.5, 1),
+            rgba: new Uint8ClampedArray([200,100,100,255]),
+            hsv: rgbToHsv(200, 100, 100),
         },
     },
     right: {
         type: 'eraser',
         color: {
-            // h:0-360 s/v: 0-1
-            hsv: {h: 360, s: 0.5, v: 1},
-            // rgb string (e.g. rgb(255, 0, 0))
-            str: hsvToRgb(360, 0.5, 1),
+            rgba: new Uint8ClampedArray([100,100,200,255]),
+            hsv: rgbToHsv(100, 100, 200),
         },
     },
 }
@@ -92,18 +94,20 @@ const tool = {
 // set SV box color
 function setSVBoxColor(hue) {
     const SVCanvas = document.getElementById("sv");
+    const width = SVCanvas.width;
+    const height = SVCanvas.height;
     // console.log(SVCanvas.width, SVCanvas.height);
     const ctx = SVCanvas.getContext("2d");
     // reset canvas
-    ctx.clearRect(0, 0, 200, 150);
+    ctx.clearRect(0, 0, width, height);
 
     // length
-    for (let i = 0; i < 150; i++) {
+    for (let i = 0; i < height; i++) {
         // width
-        for (let j = 0; j < 200; j++) {
-            const saturation = j / 200;
-            const value = (-i + 150) / 150;
-            ctx.fillStyle = hsvToRgb(hue, saturation, value);
+        for (let j = 0; j < width; j++) {
+            const saturation = j / width;
+            const value = (-i + height) / height;
+            ctx.fillStyle = rgbaArrToStr(hsvaToRgba(hue, saturation, value, 1));
             ctx.fillRect(j, i, 1, 1);
         }
     }
@@ -112,16 +116,15 @@ function setSVBoxColor(hue) {
 function updateSVMarker(event) {
     const svMarker = document.getElementById("sv-marker");
     // update color
-    svMarker.style.backgroundColor = tool[paletteType].color.str;
+    svMarker.style.backgroundColor = rgbaArrToStr(tool[paletteType].color.rgba);
     // move marker
     svMarker.style.top = (event.offsetY - 5) + "px";
     svMarker.style.left = (event.offsetX - 5) + "px";
 }
 function updateHueMarker(event) {
     const hueMarker = document.getElementById("hue-marker");
-    // update color
-    const currentHueColor = hsvToRgb(tool[paletteType].color.hsv.h, 1, 1);
-    hueMarker.style.backgroundColor = currentHueColor;
+    // update hue marker color
+    hueMarker.style.backgroundColor = rgbaArrToStr(tool[paletteType].color.rgba);
     // move marker
     hueMarker.style.top = (event.offsetY - 10) + "px";
 }
@@ -135,7 +138,8 @@ function handleSVChange(event) {
         const hsv = tool[paletteType].color.hsv; // reference to hsv object
         hsv.s = saturation;
         hsv.v = value;
-        tool[paletteType].color.str = hsvToRgb(hsv.h, saturation, value);
+        tool[paletteType].color.hsv = {h: hsv.h, s: saturation, v: value};
+        tool[paletteType].color.rgba = hsvaToRgba(hsv.h, saturation, value, 1);
 
         updateSVMarker(event);
     }
@@ -161,14 +165,15 @@ function handleHueChange(event) {
             const hsv = tool[paletteType].color.hsv; // reference to hsv object
             hsv.h = hue;
             // console.log(hue);
-            tool[paletteType].color.str = hsvToRgb(hue, hsv.s, hsv.v);
+            tool[paletteType].color.hsv = {h: hue, s: hsv.s, v: hsv.v};
+            tool[paletteType].color.rgba = hsvaToRgba(hue, hsv.s, hsv.v, 1);
             // update SV canvas
             setSVBoxColor(hue);
 
             updateHueMarker(event);
             // update sv marker color bc sv box has changed
             const svMarker = document.getElementById("sv-marker");
-            svMarker.style.backgroundColor = tool[paletteType].color.str;
+            svMarker.style.backgroundColor = rgbaArrToStr(tool[paletteType].color.rgba);
         }
         lastSVUpdate = now;
     }
@@ -182,29 +187,6 @@ $("#hue").on({
     }
 });
 
-
-/** --INITIALIZE IMAGE--
- * 
- *  example of 4px by 4px image
- * ```
- * [
- *     ['white', 'white', 'white', 'white'],
- *     ['white', 'white', 'white', 'white'],
- *     ['white', 'white', 'white', 'white'],
- *     ['white', 'white', 'white', 'white'],
- * ]
- * ```
- */ 
-function newPixArr() {
-    const pixelArr = [];
-    for (let i = 0; i < image.height; i++) {
-        pixelArr.push([]);
-        for (let j = 0; j < image.width; j++) {
-            pixelArr[i].push("rgba(0, 0, 0, 0)");
-        }
-    }
-    return pixelArr
-}
 
 
 //             THIS CODE IS KINDA USELESS FOR NOW
@@ -239,7 +221,7 @@ function drawPixelOnCanvas(x, y, color) {
     const px = image.px;
     image.ctx.clearRect(x * px, y * px, px, px);
     // set the color of the pixel about to be drawn
-    image.ctx.fillStyle = color;
+    image.ctx.fillStyle = rgbaArrToStr(color);
     //           x0,     y0,  width, height
     image.ctx.fillRect(x * px, y * px, px, px);
 }
@@ -355,7 +337,7 @@ function pencilFillMiddlePixels(mousePixel, color) {
 }
 function updatePixelArrayAndCanvas(pixelX, pixelY, color) {
     // console.log(pixelX, pixelY);
-    image.array[pixelY][pixelX] = color;
+    editPixel(pixelX, pixelY, color);
     drawPixelOnCanvas(pixelX, pixelY, color);
 }
 function handlePencilDrawing(event, color) {
@@ -404,21 +386,20 @@ function handleDropper(event) {
          switch to dropper left to change left color, you instead change right 
          color.
     */
-    const pixelColor = image.array[mousePixel.y][mousePixel.x];
-    tool.left.color.str = pixelColor;
-    const [_, r, g, b] = pixelColor.match(/^rgba?\(([\d\.]+), ([\d\.]+), ([\d\.]+)/);
-    tool.left.color.hsv = rgbToHsv(r, g, b);
-    console.log(tool.left.color.hsv);
+    const rgbaPixelColor = getPixel(mousePixel.x, mousePixel.y);
+    tool.left.color.hsv = rgbToHsv(rgbaPixelColor[0], rgbaPixelColor[1], rgbaPixelColor[2]);
+    tool.left.color.rgba = rgbaPixelColor;
+    
 }
 
 function handleMouseDown(event) {
     function handleMouseType(event, btnType) {
         switch (tool[btnType].type) {
             case 'pencil':
-                handlePencilDrawing(event, tool[btnType].color.str);
+                handlePencilDrawing(event, tool[btnType].color.rgba);
                 break;
             case 'eraser':
-                const eraserColor = "rgba(0, 0, 0, 0)";
+                const eraserColor = [0, 0, 0, 0];
                 handlePencilDrawing(event, eraserColor);
                 break;
             case 'dropper':
@@ -516,14 +497,84 @@ $('#upload-img').on("input", function(e) {
     img.onload = function draw() {
         // canvas.width = this.width;
         // canvas.height = this.height;
-        image.ctx.drawImage(this, 0, 0/*, image.width * image.px, image.height * image.px*/); // FIXME: image not resizing
+        const width = canvas.width;
+        const height = canvas.height;
+        image.ctx.clearRect(0, 0, width, height);
+        // prevent blurring pixel image when uploaded (it seems to reset if only
+        // called once at top of code, so must called right before each uppload)
+        image.ctx.imageSmoothingEnabled = false;
+        image.ctx.drawImage(this, 0, 0, width, height); // FIXME: image not resizing
+        console.log(image.ctx.imageSmoothingEnabled);
+
+        // creat rgba array from image
+        // image.array = 
+        const tempCanvas = new OffscreenCanvas(this.width, this.height);
+        const tempCtx = tempCanvas.getContext('2d');
+        tempCtx.imageSmoothingEnabled = false;
+        tempCtx.drawImage(this, 0, 0);
+        const myData = tempCtx.getImageData(0, 0, this.width, this.height);
+        console.log(myData);
     };
     img.onerror = function failed() {
         console.error("The provided file couldn't be loaded as an Image media");
     };
     img.src = URL.createObjectURL(this.files[0]);
 });
+/**
+ * edit pixel array of image
+ * @param {*} x x-coordinate of pixel
+ * @param {*} y y-coordinate of pixel
+ * @param {*} r red (0-255)
+ * @param {*} g green (0-255)
+ * @param {*} b blue (0-255)
+ * @param {*} a transparency (0-255)
+ */
+function editPixel(x, y, color) {
+    /*
+    1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3
+    4, 4, 4, 4, 5, 5, 5, 5, 6, 6, 6, 6
+    7, 7, 7, 7, 8, 8, 8, 8, 9, 9, 9, 9
 
+    x=1, y=1
+    width=3
+
+    idx_r = width * y * 4 + (x * 4)
+          = 3     * 1 * 4 + (1 * 4)
+          = 12 + 4
+          = 16 ✅
+
+    x=0, y=2
+    width=3
+
+    idx_r = width * y * 4 + (x * 4)
+          = 3     * 2 * 4 + (0 * 4)
+          = 24 ✅
+    */
+    const r_index = (image.width * y * 4) + (x * 4);
+    const r = color[0];
+    const g = color[1];
+    const b = color[2];
+    const a = color[3];
+    image.array[r_index] = r;
+    image.array[r_index + 1] = g;
+    image.array[r_index + 2] = b;
+    image.array[r_index + 3] = a;
+}
+/**
+ * 
+ * @param {number} x x-coordinate of pixel
+ * @param {number} y y-coordinate of pixel
+ * @returns {Array<number>} rgba array of pixel
+ */
+function getPixel(x, y) {
+    const r_index = (image.width * y * 4) + (x * 4);
+    return [
+        image.array[r_index],
+        image.array[r_index + 1],
+        image.array[r_index + 2],
+        image.array[r_index + 3]
+    ];
+}
 
 $('.tools').on('contextmenu', e => e.preventDefault());
 
