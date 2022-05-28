@@ -107,7 +107,7 @@ let lastSVUpdate = Date.now();
 // 20 x 150
 function handleHueChange(event) {
     const now = Date.now();
-    if (lastSVUpdate < now - 50) {
+    if (lastSVUpdate < now - 10) {
         if (event.buttons === 1) {
             //          invert
             const hue = 360 - (event.offsetY / 150 * 360);
