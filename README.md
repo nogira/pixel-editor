@@ -5,7 +5,7 @@ web-based pixel art editor in relatively vanilla javascript (hence why all js in
 <sup>~ not meant for actual use, just a learning project.</sup>
 
 
-assign tool to left click by left-clicking tool. assign tool to right click by right clicking tool.
+assign a tool to left-click by left-clicking tool. assign a tool to right-click by right-clicking tool.
 
 can save images, but not yet upload images.
 
